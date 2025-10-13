@@ -13,39 +13,9 @@
 
 #define LOOP_DELAY 1000
 
-class MyMeteo : public MeteoStation {
-private:
-    DHT dht;
-    WindSensorDouble windSensor;
 
-public:    
-    using pin = uint8_t;
-    MyMeteo(pin dht22pin, pin trig1, pin echo1, pin trig2, pin echo2) : dht(dht22pin, DHT22), windSensor(trig1, echo1, trig2, echo2) {};
 
-    void begin() override {
-        dht.begin();
-        windSensor.begin();
-    }
 
-    void updateHumi() override {
-        humi = dht.readHumidity(true);
-    }
-
-    void updatePres() override {
-        //
-    }
-
-    void updateTemp() override {
-        temp = dht.readTemperature(true);
-    }
-
-    void updateWind() override {
-        windSensor.calibrateByTemperature(temp);
-        wind = windSensor.readWind();
-    }
-};
-
-MyMeteo meteoStation(1, 2, 3, 4, 5);
 
 void setup() {
     Serial.begin(9600);
