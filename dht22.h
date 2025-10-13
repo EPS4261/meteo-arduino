@@ -1,3 +1,5 @@
+#pragma once
+
 //#include <DHT.h>
 #include "/home/pavel/Programs/Arduino/libraries/DHT_sensor_library/DHT.h"
 #include "meteo.h"

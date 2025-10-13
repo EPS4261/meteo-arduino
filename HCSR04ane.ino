@@ -1,19 +1,19 @@
-#define ETL_NO_STL
-
 #include <Arduino.h>
 
+#define ETL_NO_STL
 #include "Embedded_Template_Library.h"
 
 #include "meteo.h"
-#include "wind_double.h"
+#include "dht22.h"
+
 #include "/home/pavel/Programs/Arduino/libraries/DHT_sensor_library/DHT.h"
 //#include <DHT.h>
 
 #define LOOP_DELAY 1000
 
 
-
-
+DHT22Sensor dht22(1);
+MeteoStation meteo;
 
 void setup() {
     Serial.begin(9600);
@@ -22,15 +22,19 @@ void setup() {
 
     Serial.println("STARTING");
     
-    meteoStation.begin();
-    Serial.println(meteoStation.getWeatherString().c_str());
+    meteo.setTemperatureSensor(&dht22);
+    meteo.setHumiditySensor(&dht22);
+
+    meteo.begin();
+    
+    Serial.println(meteo.getWeatherString().c_str());
 }
 
 
 void loop() {
-    meteoStation.update();
+    meteo.update();
     
-    Serial.println(meteoStation.getWeatherString().c_str());
+    Serial.println(meteo.getWeatherString().c_str());
     
     delay(LOOP_DELAY);
 }

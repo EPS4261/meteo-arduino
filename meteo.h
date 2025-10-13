@@ -2,6 +2,7 @@
 
 #include <Arduino.h>
 #include <DHT.h>
+#include <cmath>
 
 #include "Embedded_Template_Library.h"
 #include "etl/array.h"
@@ -47,6 +48,30 @@ public:
 
 class MeteoStation {
 public:
+    bool begin() {
+        bool humi_begin = humiSensor == nullptr ? 0 : humiSensor->begin();
+        bool pres_begin = presSensor == nullptr ? 0 : presSensor->begin();
+        bool temp_begin = tempSensor == nullptr ? 0 : tempSensor->begin();
+        bool wind_begin = windSensor == nullptr ? 0 : windSensor->begin();
+        return humi_begin || pres_begin || temp_begin || wind_begin;
+    }
+
+    void setHumiditySensor(HumiditySensor* sensor_ptr) { humiSensor = sensor_ptr; }
+    void setPressureSensor(PressureSensor* sensor_ptr) { presSensor = sensor_ptr; }
+    void setTemperatureSensor(TemperatureSensor* sensor_ptr) { tempSensor = sensor_ptr; }
+    void setWindSensor(WindSensor* sensor_ptr) { windSensor = sensor_ptr; }
+
+    void update() {
+        humi = humiSensor == nullptr ? NAN : humiSensor->readHumidity();
+        pres = presSensor == nullptr ? NAN : presSensor->readPressure();
+        temp = tempSensor == nullptr ? NAN : tempSensor->readTemperature();
+        if (windSensor == nullptr) {
+            wind = {NAN, NAN, NAN};
+        } else {
+            wind = windSensor->readWind();
+        }
+    }
+
     float getHumidity() const { return humi; }
     float getPressure() const { return pres; }
     float getTemperature() const { return temp; }
