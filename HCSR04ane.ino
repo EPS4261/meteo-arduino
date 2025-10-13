@@ -4,8 +4,6 @@
 
 #include "Embedded_Template_Library.h"
 
-//#define ARDUINO_AVR_MEGA2560
-
 #include "meteo.h"
 #include "wind_double.h"
 #include "/home/pavel/Programs/Arduino/libraries/DHT_sensor_library/DHT.h"

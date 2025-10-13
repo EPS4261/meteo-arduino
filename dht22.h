@@ -1,5 +1,6 @@
-#include <DHT.h>
-#include "../meteo.h"
+//#include <DHT.h>
+#include "/home/pavel/Programs/Arduino/libraries/DHT_sensor_library/DHT.h"
+#include "meteo.h"
 
 class DHT22Sensor : public TemperatureSensor, public HumiditySensor {
 private:
