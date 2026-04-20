@@ -13,28 +13,28 @@
 
 class TemperatureSensor {
 public:
-    virtual bool begin() = 0;
+    virtual void begin() = 0;
     virtual float readTemperature() = 0;
     virtual ~TemperatureSensor() {}
 };
 
 class HumiditySensor {
 public:
-    virtual bool begin() = 0;
+    virtual void begin() = 0;
     virtual float readHumidity() = 0;
     virtual ~HumiditySensor() {}
 };
 
 class PressureSensor {
 public:
-    virtual bool begin() = 0;
+    virtual void begin() = 0;
     virtual float readPressure() = 0;
     virtual ~PressureSensor() {}
 };
 
 class WindSensor {
 public:
-    virtual bool begin() = 0;
+    virtual void begin() = 0;
     virtual etl::array<float, 3> readWind() = 0;
     virtual ~WindSensor() {}
 };
@@ -43,12 +43,11 @@ public:
 
 class MeteoStation {
 public:
-    bool begin() {
-        bool humi_begin = humiSensor == nullptr ? 0 : humiSensor->begin();
-        bool pres_begin = presSensor == nullptr ? 0 : presSensor->begin();
-        bool temp_begin = tempSensor == nullptr ? 0 : tempSensor->begin();
-        bool wind_begin = windSensor == nullptr ? 0 : windSensor->begin();
-        return humi_begin || pres_begin || temp_begin || wind_begin;
+    void begin() {
+        humiSensor->begin();
+        presSensor->begin();
+        tempSensor->begin();
+        windSensor->begin();
     }
 
     void setHumiditySensor(HumiditySensor* sensor_ptr) { humiSensor = sensor_ptr; }
@@ -79,10 +78,10 @@ public:
     etl::string<256> getWeatherString() const;
     
 private:
-    float humi = NAN;   // humidity (%)
-    float pres = NAN;   // pressure (hPa)
-    float temp = NAN;  // temperature (Celsius) 
-    etl::array<float, 3> wind = {NAN, NAN, NAN}; // wind speed (m/s X,Y,Z)
+    float humi = 0.0;   // humidity (%)
+    float pres = 0.0;   // pressure (hPa)
+    float temp = 0.0;  // temperature (Celsius) 
+    etl::array<float, 3> wind{}; // wind speed (m/s X,Y,Z)
 
     HumiditySensor* humiSensor = nullptr;
     PressureSensor* presSensor = nullptr;

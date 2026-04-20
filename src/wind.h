@@ -7,9 +7,10 @@
 #include "etl/vector.h"
 #include "etl/algorithm.h"
 
+#include "meteo.h"
 
 #define TEMP_DEFAULT 15
-#define dist 0.70
+#define dist 0.69
 
 #ifndef PULSE_DELAY_L
     #define PULSE_DELAY_L 30 // microseconds
@@ -27,7 +28,7 @@
 using pin = uint8_t;
 using Vector3 = etl::array<float, 3>;
 
-class HCSR04WindSensor {
+class HCSR04WindSensor : public WindSensor {
 public:
     HCSR04WindSensor(pin trig, pin echo) {
         this->axes.emplace_back(trig, echo);
@@ -44,6 +45,23 @@ public:
         this->axes.emplace_back(trig3, echo3);
         calibrateByTemperature(TEMP_DEFAULT);
     }
+
+    HCSR04WindSensor(TemperatureSensor* tsensor, pin trig, pin echo) : tsensor(tsensor) {
+        this->axes.emplace_back(trig, echo);
+        calibrateByTemperature(tsensor->readTemperature());
+    }
+    HCSR04WindSensor(TemperatureSensor* tsensor, pin trig1, pin echo1, pin trig2, pin echo2) : tsensor(tsensor) {
+        this->axes.emplace_back(trig1, echo1);
+        this->axes.emplace_back(trig2, echo2);
+        calibrateByTemperature(tsensor->readTemperature());
+    }
+    HCSR04WindSensor(TemperatureSensor* tsensor, pin trig1, pin echo1, pin trig2, pin echo2, pin trig3, pin echo3) : tsensor(tsensor) {
+        this->axes.emplace_back(trig1, echo1);
+        this->axes.emplace_back(trig2, echo2);
+        this->axes.emplace_back(trig3, echo3);
+        calibrateByTemperature(tsensor->readTemperature());
+    }
+
     
     void begin();
     void calibrateByTemperature(float temp);
@@ -51,6 +69,8 @@ public:
     Vector3 readWind();
 
 private:
+    TemperatureSensor* tsensor = nullptr;
+
     void pulse(uint8_t axis_index) const;
     int getPulse(uint8_t axis_index) const;
     
@@ -103,6 +123,9 @@ void HCSR04WindSensor::calibrateBySpeedOfSound(float speed_of_sound_new) {
 
 Vector3 HCSR04WindSensor::readWind() {
     Vector3 result{};
+    if(tsensor != nullptr)
+        calibrateByTemperature(tsensor->readTemperature());
+
     for (int i = 0; i < axes.size(); i++) {
         etl::array<uint32_t, BURST_SIZE> pulses;
         for(int j = 0; j < BURST_SIZE; j++) {
