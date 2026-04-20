@@ -44,10 +44,10 @@ public:
 class MeteoStation {
 public:
     void begin() {
-        humiSensor->begin();
-        presSensor->begin();
-        tempSensor->begin();
-        windSensor->begin();
+        if (humiSensor != nullptr) humiSensor->begin();
+        if (presSensor != nullptr) presSensor->begin();
+        if (tempSensor != nullptr) tempSensor->begin();
+        if (windSensor != nullptr) windSensor->begin();
     }
 
     void setHumiditySensor(HumiditySensor* sensor_ptr) { humiSensor = sensor_ptr; }
