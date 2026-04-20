@@ -6,11 +6,11 @@
 #include "etl/array.h"
 #include "etl/vector.h"
 #include "etl/algorithm.h"
-#include "etl/tuple.h"
 
+#include "meteo.h"
 
 #define TEMP_DEFAULT 15
-#define dist 0.70
+#define dist 0.69
 
 #ifndef PULSE_DELAY_L
     #define PULSE_DELAY_L 30 // microseconds
@@ -28,23 +28,40 @@
 using pin = uint8_t;
 using Vector3 = etl::array<float, 3>;
 
-class WindSensor {
+class HCSR04WindSensor : public WindSensor {
 public:
-    WindSensor(pin trig, pin echo) {
+    HCSR04WindSensor(pin trig, pin echo) {
         this->axes.emplace_back(trig, echo);
         calibrateByTemperature(TEMP_DEFAULT);
     }
-    WindSensor(pin trig1, pin echo1, pin trig2, pin echo2) {
+    HCSR04WindSensor(pin trig1, pin echo1, pin trig2, pin echo2) {
         this->axes.emplace_back(trig1, echo1);
         this->axes.emplace_back(trig2, echo2);
         calibrateByTemperature(TEMP_DEFAULT);
     }
-    WindSensor(pin trig1, pin echo1, pin trig2, pin echo2, pin trig3, pin echo3) {
+    HCSR04WindSensor(pin trig1, pin echo1, pin trig2, pin echo2, pin trig3, pin echo3) {
         this->axes.emplace_back(trig1, echo1);
         this->axes.emplace_back(trig2, echo2);
         this->axes.emplace_back(trig3, echo3);
         calibrateByTemperature(TEMP_DEFAULT);
     }
+
+    HCSR04WindSensor(TemperatureSensor* tsensor, pin trig, pin echo) : tsensor(tsensor) {
+        this->axes.emplace_back(trig, echo);
+        calibrateByTemperature(tsensor->readTemperature());
+    }
+    HCSR04WindSensor(TemperatureSensor* tsensor, pin trig1, pin echo1, pin trig2, pin echo2) : tsensor(tsensor) {
+        this->axes.emplace_back(trig1, echo1);
+        this->axes.emplace_back(trig2, echo2);
+        calibrateByTemperature(tsensor->readTemperature());
+    }
+    HCSR04WindSensor(TemperatureSensor* tsensor, pin trig1, pin echo1, pin trig2, pin echo2, pin trig3, pin echo3) : tsensor(tsensor) {
+        this->axes.emplace_back(trig1, echo1);
+        this->axes.emplace_back(trig2, echo2);
+        this->axes.emplace_back(trig3, echo3);
+        calibrateByTemperature(tsensor->readTemperature());
+    }
+
     
     void begin();
     void calibrateByTemperature(float temp);
@@ -52,6 +69,8 @@ public:
     Vector3 readWind();
 
 private:
+    TemperatureSensor* tsensor = nullptr;
+
     void pulse(uint8_t axis_index) const;
     int getPulse(uint8_t axis_index) const;
     
@@ -68,7 +87,7 @@ private:
 
 
 
-void WindSensor::pulse(uint8_t axis_index) const {
+void HCSR04WindSensor::pulse(uint8_t axis_index) const {
     const auto& trig = axes.at(axis_index).trig;
 
     digitalWrite(trig, 0);
@@ -78,32 +97,35 @@ void WindSensor::pulse(uint8_t axis_index) const {
     digitalWrite(trig, 0);
 }
 
-int WindSensor::getPulse(uint8_t axis_index) const {
+int HCSR04WindSensor::getPulse(uint8_t axis_index) const {
     const auto& echo = axes.at(axis_index).echo;
     return pulseIn(echo, HIGH);
 }
 
-void WindSensor::begin() {
+void HCSR04WindSensor::begin() {
     for (auto& axis : axes) {
         pinMode(axis.trig, OUTPUT);
         pinMode(axis.echo, INPUT);
     }
 }
 
-void WindSensor::calibrateByTemperature(float temp) {
+void HCSR04WindSensor::calibrateByTemperature(float temp) {
     if (!isnan(temp)) {
         speed_of_sound = 331.3 + 0.606 * temp;
     }
 } 
 
-void WindSensor::calibrateBySpeedOfSound(float speed_of_sound_new) {
+void HCSR04WindSensor::calibrateBySpeedOfSound(float speed_of_sound_new) {
     speed_of_sound = speed_of_sound_new;
 }
 
 
 
-Vector3 WindSensor::readWind() {
+Vector3 HCSR04WindSensor::readWind() {
     Vector3 result{};
+    if(tsensor != nullptr)
+        calibrateByTemperature(tsensor->readTemperature());
+
     for (int i = 0; i < axes.size(); i++) {
         etl::array<uint32_t, BURST_SIZE> pulses;
         for(int j = 0; j < BURST_SIZE; j++) {
