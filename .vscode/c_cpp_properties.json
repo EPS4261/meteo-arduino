@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Arduino AVR Mega",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/HCSR04ane/src/**",
+                "${workspaceFolder}/src/**",
+                "/home/pavel/.arduino15/packages/arduino/hardware/avr/*/cores/arduino",
+                "/home/pavel/.arduino15/packages/arduino/hardware/avr/*/variants/mega",
+                "/home/pavel/.arduino15/libraries/**",
+                "/home/pavel/Arduino/libraries/**",
+                "/usr/share/arduino/libraries/**"
+            ],
+            "defines": [
+                "ARDUINO",
+                "__AVR__",
+                "__AVR_ATmega2560__"
+            ],
+            "compilerPath": "/home/pavel/.arduino15/packages/arduino/tools/avr-gcc/7.3.0-atmel3.6.1-arduino7/bin/avr-gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++11",
+            "intelliSenseMode": "linux-gcc-arm"
+        }
+    ],
+    "version": 4
+}

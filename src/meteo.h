@@ -1,6 +1,5 @@
 #pragma once
 
-#include <Arduino.h>
 #include <DHT.h>
 
 #include "Embedded_Template_Library.h"
@@ -56,14 +55,10 @@ public:
     void setWindSensor(WindSensor* sensor_ptr) { windSensor = sensor_ptr; }
 
     void update() {
-        humi = humiSensor == nullptr ? NAN : humiSensor->readHumidity();
-        pres = presSensor == nullptr ? NAN : presSensor->readPressure();
-        temp = tempSensor == nullptr ? NAN : tempSensor->readTemperature();
-        if (windSensor == nullptr) {
-            wind = {NAN, NAN, NAN};
-        } else {
-            wind = windSensor->readWind();
-        }
+        if (humiSensor) humi = humiSensor->readHumidity(); else humi = NAN;
+        if (presSensor) pres = presSensor->readPressure(); else pres = NAN;
+        if (tempSensor) temp = tempSensor->readTemperature(); else temp = NAN;
+        if (windSensor) wind = windSensor->readWind(); else wind = {NAN, NAN, NAN};
     }
 
     float getHumidity() const { return humi; }

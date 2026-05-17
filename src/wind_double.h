@@ -1,138 +1,125 @@
 #pragma once
 
-#include <Arduino.h>
-
 #include "Embedded_Template_Library.h"
 #include "etl/array.h"
-#include "etl/vector.h"
 #include "etl/algorithm.h"
-#include "etl/tuple.h"
 
+#include "meteo.h"
 
-#define TEMP_DEFAULT 15
-#define dist 0.70
+#define dist 0.685
 
 #ifndef PULSE_DELAY_L
-    #define PULSE_DELAY_L 30 // microseconds
+    #define PULSE_DELAY_L 10 // microseconds
 #endif
 #ifndef PULSE_DELAY_H
-    #define PULSE_DELAY_H 70 // microseconds
+    #define PULSE_DELAY_H 10 // microseconds
 #endif
 #ifndef PULSE_DELAY_WAIT
     #define PULSE_DELAY_WAIT 50 // milliseconds
-#endif
-#ifndef BURST_SIZE
-    #define BURST_SIZE 20
 #endif
 
 using pin = uint8_t;
 using Vector3 = etl::array<float, 3>;
 
-class WindSensorDouble {
+template<size_t BURST_SIZE = 40>
+class HCSR04WindSensorDouble : public WindSensor {
+    static_assert(BURST_SIZE > 0, "BURST_SIZE must be greater than 0");
 public:
-    WindSensorDouble(pin trig11, pin echo11, pin trig12, pin echo12) {
-        this->axes.push_back({{ TrigEcho{trig11, echo11}, TrigEcho{trig12, echo12} }});
-        calibrateByTemperature(TEMP_DEFAULT);
-        
-        Serial.print("Speed of sound\t");
-        Serial.println(speed_of_sound);
+    HCSR04WindSensorDouble(pin trig1_fwd, pin echo1_fwd, pin trig1_bwd, pin echo1_bwd) {
+        this->axes.emplace_back(trig1_fwd, echo1_fwd, trig1_bwd, echo1_bwd);
     }
-    
-    WindSensorDouble(pin trig11, pin echo11, pin trig12, pin echo12, pin trig21, pin echo21, pin trig22, pin echo22) {
-        axes.reserve(2);
-        this->axes.push_back({{ TrigEcho{trig11, echo11}, TrigEcho{trig12, echo12} }});
-        this->axes.push_back({{ TrigEcho{trig21, echo21}, TrigEcho{trig22, echo22} }});
-        calibrateByTemperature(TEMP_DEFAULT);
+    HCSR04WindSensorDouble(pin trig1_fwd, pin echo1_fwd, pin trig1_bwd, pin echo1_bwd,
+                            pin trig2_fwd, pin echo2_fwd, pin trig2_bwd, pin echo2_bwd) {
+        this->axes.emplace_back(trig1_fwd, echo1_fwd, trig1_bwd, echo1_bwd);
+        this->axes.emplace_back(trig2_fwd, echo2_fwd, trig2_bwd, echo2_bwd);
     }
-    
+    HCSR04WindSensorDouble(pin trig1_fwd, pin echo1_fwd, pin trig1_bwd, pin echo1_bwd,
+                            pin trig2_fwd, pin echo2_fwd, pin trig2_bwd, pin echo2_bwd,
+                            pin trig3_fwd, pin echo3_fwd, pin trig3_bwd, pin echo3_bwd) {
+        this->axes.emplace_back(trig1_fwd, echo1_fwd, trig1_bwd, echo1_bwd);
+        this->axes.emplace_back(trig2_fwd, echo2_fwd, trig2_bwd, echo2_bwd);
+        this->axes.emplace_back(trig3_fwd, echo3_fwd, trig3_bwd, echo3_bwd);
+    }
+
     void begin();
-    void calibrateByTemperature(float temp);
-    void calibrateBySpeedOfSound(float speed_of_sound_new);
     Vector3 readWind();
 
 private:
-    void pulse(uint8_t axis_index) const;
-    int getPulse(uint8_t axis_index, bool sensor_index) const;
+    void pulse(uint8_t axis_index, uint8_t direction) const;
+    int getPulse(uint8_t axis_index, uint8_t direction) const;
     
-    struct TrigEcho {
-        pin trig;
-        pin echo;
-        constexpr TrigEcho(pin trig, pin echo) : trig(trig), echo(echo){};
+    struct TrigEchoPair {
+        pin trig_fwd, echo_fwd;
+        pin trig_bwd, echo_bwd;
+        TrigEchoPair(pin tf, pin ef, pin tb, pin eb) 
+            : trig_fwd(tf), echo_fwd(ef), trig_bwd(tb), echo_bwd(eb) {}
     };
 
-    etl::vector<etl::array<TrigEcho, 2>, 3> axes;
-
-    float speed_of_sound; // speed of sound (m/s)
+    etl::vector<TrigEchoPair, 3> axes;
 };
 
 
 
-void WindSensorDouble::pulse(uint8_t axis_index) const {
-    const auto& axis = axes.at(axis_index);
+template<size_t BURST_SIZE>
+void HCSR04WindSensorDouble<BURST_SIZE>::pulse(uint8_t axis_index, uint8_t direction) const {
+    pin trig = (direction == 0) ? axes[axis_index].trig_fwd : axes[axis_index].trig_bwd;
 
-    digitalWrite(axis[0].trig, LOW);
-    digitalWrite(axis[1].trig, LOW);
+    digitalWrite(trig, 0);
     delayMicroseconds(PULSE_DELAY_L);
-    digitalWrite(axis[0].trig, HIGH);
-    digitalWrite(axis[1].trig, HIGH);
+    digitalWrite(trig, 1);
     delayMicroseconds(PULSE_DELAY_H);
-    digitalWrite(axis[0].trig, LOW);
-    digitalWrite(axis[1].trig, LOW);
+    digitalWrite(trig, 0);
 }
 
-int WindSensorDouble::getPulse(uint8_t axis_index, bool sensor_index) const {
-    const auto& echo = axes.at(axis_index).at(sensor_index).echo;
+template<size_t BURST_SIZE>
+int HCSR04WindSensorDouble<BURST_SIZE>::getPulse(uint8_t axis_index, uint8_t direction) const {
+    pin echo = (direction == 0) ? axes[axis_index].echo_fwd : axes[axis_index].echo_bwd;
     return pulseIn(echo, HIGH);
 }
 
-void WindSensorDouble::begin() {
+template<size_t BURST_SIZE>
+void HCSR04WindSensorDouble<BURST_SIZE>::begin() {
+    if(begun) return;
+    begun = true;
     for (auto& axis : axes) {
-        pinMode(axis[0].trig, OUTPUT);
-        pinMode(axis[0].echo, INPUT);
-        pinMode(axis[1].trig, OUTPUT);
-        pinMode(axis[1].echo, INPUT);
+        pinMode(axis.trig_fwd, OUTPUT);
+        pinMode(axis.echo_fwd, INPUT);
+        pinMode(axis.trig_bwd, OUTPUT);
+        pinMode(axis.echo_bwd, INPUT);
     }
 }
 
-void WindSensorDouble::calibrateByTemperature(float temp) {
-    if (!isnan(temp)) {
-        speed_of_sound = 331.3 + 0.606 * temp;
-    }
-} 
-
-void WindSensorDouble::calibrateBySpeedOfSound(float speed_of_sound_new) {
-    speed_of_sound = speed_of_sound_new;
-}
-
-
-
-Vector3 WindSensorDouble::readWind() {
+template<size_t BURST_SIZE>
+Vector3 HCSR04WindSensorDouble<BURST_SIZE>::readWind() {
     Vector3 result{};
-    for (int i = 0; i < axes.size(); i++) {
-        etl::array<uint32_t, BURST_SIZE> pulses1;
-        etl::array<uint32_t, BURST_SIZE> pulses2;
-        for(int j = 0; j < BURST_SIZE; j++) {
-            pulse(i);
-            pulses1[j] = getPulse(i, 0);
-            Serial.print(pulses1[j]);
-            delay(PULSE_DELAY_WAIT);
-            pulse(i);
-            pulses2[j] = getPulse(i, 1);
-            Serial.print('\t');
-            Serial.println(pulses2[j]);
+    const uint8_t axes_size = axes.size();
+    
+    for (uint8_t i = 0; i < axes_size; i++) {
+        etl::array<uint32_t, BURST_SIZE> pulses_fwd;
+        for(uint8_t j = 0; j < BURST_SIZE; j++) {
+            pulse(i, 0);
+            pulses_fwd[j] = getPulse(i, 0);
             delay(PULSE_DELAY_WAIT);
         }
 
-        etl::sort(pulses1.begin(), pulses1.end());
-        float dt1 = (BURST_SIZE % 2 == 1) ? pulses1[BURST_SIZE/2] : (pulses1[BURST_SIZE/2 - 1] + pulses1[BURST_SIZE/2]) / 2.0;
-        //Serial.println(dt1);
-        
-        etl::sort(pulses2.begin(), pulses2.end());
-        float dt2 = (BURST_SIZE % 2 == 1) ? pulses2[BURST_SIZE/2] : (pulses2[BURST_SIZE/2 - 1] + pulses2[BURST_SIZE/2]) / 2.0;
-        //Serial.println(dt2);
+        etl::array<uint32_t, BURST_SIZE> pulses_bwd;
+        for(uint8_t j = 0; j < BURST_SIZE; j++) {
+            pulse(i, 1);
+            pulses_bwd[j] = getPulse(i, 1);
+            delay(PULSE_DELAY_WAIT);
+        }
 
-        result[i] = 2.0 * dist / (dt1 + dt2) * 1e6 - speed_of_sound;
+        const uint8_t median_pos = BURST_SIZE / 2;
+        etl::nth_element(pulses_fwd.begin(), pulses_fwd.begin() + median_pos, pulses_fwd.end());
+        uint32_t dt_fwd = (BURST_SIZE % 2 == 1) ? pulses_fwd[median_pos] 
+                                                  : (pulses_fwd[median_pos - 1] + pulses_fwd[median_pos]) / 2;
+
+        etl::nth_element(pulses_bwd.begin(), pulses_bwd.begin() + median_pos, pulses_bwd.end());
+        uint32_t dt_bwd = (BURST_SIZE % 2 == 1) ? pulses_bwd[median_pos] 
+                                                  : (pulses_bwd[median_pos - 1] + pulses_bwd[median_pos]) / 2;
+
+        result[i] = (dist / dt_fwd - dist / dt_bwd) * 1e6 / 2.0;
     }
+
     return result;
 }
-

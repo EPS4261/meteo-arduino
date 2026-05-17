@@ -6,7 +6,6 @@
 class DHT22Sensor : public TemperatureSensor, public HumiditySensor {
 private:
     DHT dht;
-    uint8_t pin;
     bool begun = false;
     
 public:
@@ -30,7 +29,6 @@ public:
 class DHT11Sensor : public TemperatureSensor, public HumiditySensor {
 private:
     DHT dht;
-    uint8_t pin;
     bool begun = false;
     
 public:

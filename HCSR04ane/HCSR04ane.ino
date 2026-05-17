@@ -1,5 +1,3 @@
-#include <Arduino.h>
-
 #define ETL_NO_STL
 #include "src/Embedded_Template_Library.h"
 
@@ -9,12 +7,12 @@
 
 #include <DHT.h>
 
-#define LOOP_DELAY 1000
+#define LOOP_DELAY 0
 
 
-DHT11Sensor dht11(7);
+DHT11Sensor dht11(4);
 MeteoStation meteo;
-HCSR04WindSensor windSensor(&dht11, 10, 8);
+HCSR04WindSensor windSensor(&dht11, 32, 31, 52, 53, 10, 8);
 
 void setup() {
     Serial.begin(9600);
@@ -27,13 +25,11 @@ void setup() {
     meteo.setTemperatureSensor(&dht11);
     meteo.setHumiditySensor(&dht11);
     meteo.setWindSensor(&windSensor);
-    Serial.println(11);
 
     //meteo.begin();
     dht11.begin();
     windSensor.begin();
     
-    Serial.println(22);
     Serial.println(meteo.getWeatherString().c_str());
     Serial.println("Setup complete.");
 }
